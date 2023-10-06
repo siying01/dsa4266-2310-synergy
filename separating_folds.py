@@ -24,3 +24,4 @@ gene_folds = pd.DataFrame(data_dict)
 
 #join with the main dataframe so that we know which samples goes to which fold during cross-validation
 full_dataset = pd.merge(df, gene_folds, on = 'gene_id', how = "left")
+full_dataset.to_csv("training_data.csv")
