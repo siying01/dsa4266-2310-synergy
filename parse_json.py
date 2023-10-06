@@ -53,3 +53,6 @@ data_info = pd.read_csv(file2_path)
 #left join with data info file
 df_full = pd.merge(df, data_info, on = ['transcript_id', 'transcript_position'], how = "left")
 #print(df_full.head())
+save_path = (base_path / 'dataset0.csv').resolve()
+df_full.to_csv(save_path)
+print(len(df_full['mean_current_3']))
