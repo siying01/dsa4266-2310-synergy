@@ -24,6 +24,11 @@ accuracy_df = pd.DataFrame(np.nan, columns = columns, index = index)
 kernels = ['linear', 'rbf', 'string'] #parameter
 C = [0.1, 1, 10] #parameter
 
+cols_used = ['transcript_position', 'time_1', 'stddev_1', 'mean_current_1',
+             'time_2', 'stddev_2', 'mean_current_2'
+             'time_3', 'stddev_3', 'mean_current_3', 
+             'transcript_id_encoded', '6-seq_encoded']
+
 count_col = 0
 for kernel in kernels:
     for val in C:
@@ -35,10 +40,23 @@ for kernel in kernels:
             #separate into test and training
             test = data.loc[data['fold'] == fold, ]
             train = data.loc[data['fold' != fold], ]
-            X_test = test.iloc[:, 1:13] #use columns 1-12 as inputs
-            Y_test = test.iloc[:, 14] #prediction
-            X_train = train.iloc[:, 1:13]
-            Y_train = train.iloc[:, 14]
+
+            #frequency encoding for transcript id
+            transcript_frequencies_test = test['transcript_id'].value_counts().to_dict()
+            test['transcript_id_encoded'] = test['transcript_id'].map(transcript_frequencies_test)
+            transcript_frequencies_train = train['transcript_id'].value_counts().to_dict()
+            train['transcript_id_encoded'] = train['transcript_id'].map(transcript_frequencies_train)
+
+            #frequency encoding for 6-seq
+            six_seq_test = test['6-seq'].value_counts().to_dict()
+            test['6-seq_encoded'] = test['6-seq'].map(six_seq_test)
+            six_seq_train = train['6-seq'].value_counts().to_dict()
+            train['6-seq_encoded'] = train['6-seq'].map(six_seq_train)
+
+            X_test = test[cols_used] #use columns 1-12 as inputs
+            Y_test = test['label'] #prediction
+            X_train = train.iloc[cols_used]
+            Y_train = train.iloc['label']
             svm.fit(X_train, Y_train)
             probabilities = svm.predict_proba(X_test)
 
@@ -63,7 +81,14 @@ for kernel in kernels:
             if count_row == 5:
                 f1score_df.iloc[count_row, count_col] = f1score_df.iloc[:5, count_col].mean() #obtain mean of f1 scores
                 precision_df.iloc[count_row, count_col] = precision_df.iloc[:5, count_col].mean() #obtain mean of precision scores
+                recall_df.iloc[count_row, count_col] = recall_df.iloc[:5, count_col].mean() #obtain mean of recall scores
+                accuracy_df.iloc[count_row, count_col] = accuracy_df.iloc[:5, count_col].mean() #obtain mean of accuracy scores
         count_col += 1
+
+#print(f1score_df)
+#print(precision_df)
+#print(recall_df)
+#print(accuracy_df)
         
         
 
