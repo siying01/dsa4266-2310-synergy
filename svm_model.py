@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from pathlib import Path
+from sklearn.metrics import precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
+from sklearn.calibration import CalibratedClassifierCV
 
 base_path = Path(__file__).parent
 file_path = (base_path / 'test1.csv').resolve() #Add in file name
@@ -20,6 +21,7 @@ f1score_df = pd.DataFrame(np.nan, columns = columns, index = index)
 precision_df = pd.DataFrame(np.nan, columns = columns, index = index)
 recall_df = pd.DataFrame(np.nan, columns = columns, index = index)
 accuracy_df = pd.DataFrame(np.nan, columns = columns, index = index)
+roc_auc_df = pd.DataFrame(np.nan, columns = columns, index = index)
 
 
 #Conduct 5-fold Cross Validation
@@ -36,7 +38,10 @@ for kernel in kernels:
     for val in C:
         svm = SVC(kernel = kernel, C = val, 
                   probability = True, class_weight = 'balanced') #class_weight = 'balanced' gives more importance to minority class
-        #do 5-fold CV
+        
+        #Use Calibrated Classifier wrapper to improve accuracy of probability estimates
+        svm_calibrated = CalibratedClassifierCV(svm, method = 'sigmoid', cv = 'prefit')
+        #5-fold CV
         count_row = 0 #keep track of current row
         for fold in range(1, 6):
             #separate into test and training
@@ -63,8 +68,10 @@ for kernel in kernels:
             Y_test = test_freq['label'] #prediction
             X_train = train_freq[cols_used]
             Y_train = train_freq['label']
+
             svm.fit(X_train, Y_train)
-            probabilities = svm.predict_proba(X_test)
+            svm_calibrated.fit(X_train, Y_train)
+            probabilities = svm_calibrated.predict_proba(X_test)
 
             #set threshold; if probability > threshold count it as positive
             threshold = 0.5
@@ -74,13 +81,15 @@ for kernel in kernels:
             f1score = f1_score(Y_test, binary_pred, zero_division = 0.0) #check zero_division and explore other metrics
             precision = precision_score(Y_test, binary_pred, zero_division = 0.0)
             recall = recall_score(Y_test, binary_pred, zero_division = 0.0)
-            accuracy = accuracy_score(Y_test, binary_pred)
+            accuracy = balanced_accuracy_score(Y_test, binary_pred)
+            roc_auc = roc_auc_score(Y_test, probabilities[:, 1])
 
             #update dataframe with metric scores
             f1score_df.iloc[count_row, count_col] = f1score
             precision_df.iloc[count_row, count_col] = precision
             recall_df.iloc[count_row, count_col] = recall
             accuracy_df.iloc[count_row, count_col] = accuracy
+            roc_auc_df.iloc[count_row, count_col] = roc_auc
         
 
             count_row += 1
@@ -89,13 +98,14 @@ for kernel in kernels:
                 precision_df.iloc[count_row, count_col] = precision_df.iloc[:5, count_col].mean() #obtain mean of precision scores
                 recall_df.iloc[count_row, count_col] = recall_df.iloc[:5, count_col].mean() #obtain mean of recall scores
                 accuracy_df.iloc[count_row, count_col] = accuracy_df.iloc[:5, count_col].mean() #obtain mean of accuracy scores
+                roc_auc_df.iloc[count_row, count_col] = roc_auc_df.iloc[:5, count_col].mean() #obtain mean of roc auc scores
         count_col += 1
 
-#print(f1score_df)
-#print(precision_df)
-#print(recall_df)
-#print(accuracy_df)
-        
+print(f1score_df)
+print(precision_df)
+print(recall_df)
+print(accuracy_df)
+print(roc_auc_df)        
         
 
 
