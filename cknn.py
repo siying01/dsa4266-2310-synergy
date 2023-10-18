@@ -175,9 +175,11 @@ for i in range(5):
   arr_train = df_train.drop(['label'], axis = 1).values
   arr_test = df_test.drop(['label'], axis = 1).values
 
-  # X_train-or-test is same as arr_train-or-test
-  X_train = arr_train # no compression of 9 features
-  X_test = arr_test # no compression of 9 features
+  # X_train-or-test is same as arr_train-or-test but scaled
+  # no compression of 9 features
+  scaler = StandardScaler().fit(arr_train)
+  X_train = scaler.transform(arr_train)
+  X_test = scaler.transform(arr_test)
 
   ## get training bag instances, bag labels 
   ## and bags corresponding to transcript-id-position
