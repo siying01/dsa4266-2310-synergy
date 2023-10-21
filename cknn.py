@@ -271,20 +271,17 @@ for i in range(5):
     tn, fp, fn, tp = confusion_matrix(test_labels, y_pred_test, labels = [0, 1]).ravel()
     res += [arr_temp + [dict_model['ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]]
 
-'''
     # citation kNN with normalised
-    y_counts_test = get_citation_knn_pred_normalized(train_labels, test_labels, distance, n_neighbors_ref)
-    y_pred_test = np.argmax(y_counts_test, axis = 1)
+    y_proba_test = get_citation_knn_score_normalized(train_labels, test_labels, distance, n_neighbors_ref, n_neighbors_cit)
+    y_pred_test = [int(proba > ncknn_threshold_value) for proba in y_proba_test]
     balanced_acc = balanced_accuracy_score(test_labels, y_pred_test)
-    auc_roc = get_roc_auc(test_labels, y_pred_test)
-    auc_pr = get_pr_auc(test_labels, y_pred_test)
+    auc_roc = get_roc_auc(test_labels, y_proba_test)
+    auc_pr = get_pr_auc(test_labels, y_proba_test)
     precision = precision_score(test_labels, y_pred_test, zero_division = 0.0)
     recall = recall_score(test_labels, y_pred_test, zero_division = 0.0)
     f1 = f1_score(test_labels, y_pred_test, zero_division = 0.0)
     tn, fp, fn, tp = confusion_matrix(test_labels, y_pred_test, labels = [0, 1]).ravel()
-    #arr_res[r, :] = arr_temp + [dict_model['norm-ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]
-    #r += 1
-'''
+    res += [arr_temp + [dict_model['norm-ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]]
 
 '''Get results'''
 
