@@ -122,6 +122,7 @@ dict_model = {'kNN': 4, 'ckNN': 5, 'norm-ckNN': 6}
 # set probability threshold for class prediction
 knn_threshold_value = 0.5
 cknn_threshold_value = 0.5
+ncknn_threshold_value = 0.5
 
 # store results
 res = []
