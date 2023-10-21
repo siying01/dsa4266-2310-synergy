@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (pairwise_distances, balanced_accuracy_score,
                              roc_curve, precision_recall_curve, auc, f1_score,
                              recall_score, precision_score, confusion_matrix)
@@ -12,22 +13,23 @@ import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
 
 base_path = Path(__file__).parent
-file_path = (base_path / "subset_f1_training_data.csv").resolve()
+file_path = (base_path / "training_data.csv").resolve()
 
 
 '''Read data, select columns, create bag id column (transcript_id_position)'''
 
-dat = pd.read_csv(file_path)
+dataset = pd.read_csv(file_path)
 
-dat = dat[['transcript_id', 'transcript_position', '6-seq',
+dataset = dataset[['transcript_id', 'transcript_position', '6-seq',
            'time_1', 'stddev_1', 'mean_current_1',
            'time_2', 'stddev_2', 'mean_current_2',
            'time_3', 'stddev_3', 'mean_current_3',
            'gene_id', 'label', 'folds']]
 
-dat['transcript_id_position'] = dat['transcript_id'].astype(str) + '-' \
-                             + dat['transcript_position'].astype(str)
+dataset['transcript_id_position'] = dataset['transcript_id'].astype(str) + '-' \
+                             + dataset['transcript_position'].astype(str)
 
+dat = dataset
 
 '''Performance metrics'''
 
@@ -78,20 +80,6 @@ def get_knn_score(train_labels, test_labels, all_bag_distances, n_neighbors):
   votes = train_labels[np.argsort(all_bag_distances, axis=1)[:, :n_neighbors]]
   return np.sum(votes, axis = 1) / n_neighbors
 
-def get_knn_pred(train_labels, test_labels, all_bag_distances, n_neighbors, threshold):
-  # class predictions
-  score = get_knn_score(train_labels, test_labels, all_bag_distances, n_neighbors)
-  return [int(x > threshold) for x in score]
-
-def get_citation_knn_pred(train_labels, test_labels, all_bag_distances, n_ref_neighbors=10, n_cit_neighbors=10):
-  reference_nn = train_labels[np.argsort(all_bag_distances, axis=1)[:, :n_ref_neighbors]]
-  num_pos_neighbors = np.sum(reference_nn, axis=1)
-  num_neg_neighbors = n_ref_neighbors - num_pos_neighbors
-  reference_nn_labels = np.concatenate([num_neg_neighbors.reshape(-1, 1),
-                                        num_pos_neighbors.reshape(-1, 1)], axis=1)
-  citer_nn_labels = get_citation_counts(train_labels, test_labels, all_bag_distances, n_cit_neighbors)
-  return reference_nn_labels + citer_nn_labels
-
 def get_citation_counts(train_labels, test_labels, all_bag_distances, n_neighbors):
   test_pos_neg_counts = np.zeros((len(test_labels), 2))
   nn = np.argsort(all_bag_distances.transpose(), axis=1)[:, :n_neighbors]
@@ -102,14 +90,25 @@ def get_citation_counts(train_labels, test_labels, all_bag_distances, n_neighbor
       test_pos_neg_counts[citation, :] += citer_label
   return test_pos_neg_counts
 
-def get_citation_knn_pred_normalized(train_labels, test_labels, all_bag_distances, n_ref_neighbors=10, n_cit_neighbors=10):
+def get_citation_knn_score(train_labels, test_labels, all_bag_distances, n_ref_neighbors=10, n_cit_neighbors=10):
   reference_nn = train_labels[np.argsort(all_bag_distances, axis=1)[:, :n_ref_neighbors]]
   num_pos_neighbors = np.sum(reference_nn, axis=1)
   num_neg_neighbors = n_ref_neighbors - num_pos_neighbors
   reference_nn_labels = np.concatenate([num_neg_neighbors.reshape(-1, 1),
                                         num_pos_neighbors.reshape(-1, 1)], axis=1)
   citer_nn_labels = get_citation_counts(train_labels, test_labels, all_bag_distances, n_cit_neighbors)
-  return reference_nn_labels / np.sum(reference_nn_labels, axis=0) + citer_nn_labels / np.sum(citer_nn_labels, axis=0)
+  class_counts = reference_nn_labels + citer_nn_labels
+  return [bag[1]/np.sum(bag) for bag in class_counts]
+
+def get_citation_knn_score_normalized(train_labels, test_labels, all_bag_distances, n_ref_neighbors=10, n_cit_neighbors=10):
+  reference_nn = train_labels[np.argsort(all_bag_distances, axis=1)[:, :n_ref_neighbors]]
+  num_pos_neighbors = np.sum(reference_nn, axis=1)
+  num_neg_neighbors = n_ref_neighbors - num_pos_neighbors
+  reference_nn_labels = np.concatenate([num_neg_neighbors.reshape(-1, 1),
+                                        num_pos_neighbors.reshape(-1, 1)], axis=1)
+  citer_nn_labels = get_citation_counts(train_labels, test_labels, all_bag_distances, n_cit_neighbors)
+  class_counts = reference_nn_labels / np.sum(reference_nn_labels, axis=0) + citer_nn_labels / np.sum(citer_nn_labels, axis=0)
+  return [bag[1]/np.sum(bag) for bag in class_counts]
 
 '''Preparation for training'''
 
@@ -120,28 +119,12 @@ def get_citation_knn_pred_normalized(train_labels, test_labels, all_bag_distance
 dict_distance = {'max': 0, 'avg': 1, 'min': 2}
 dict_model = {'kNN': 4, 'ckNN': 5, 'norm-ckNN': 6}
 
-# reset row index of results dataframe
-r = 0
-
 # set probability threshold for class prediction
 knn_threshold_value = 0.5
-cknn_threshold_value = 0 # not set yet
+cknn_threshold_value = 0.5
 
-# Instantiate array to store results
-
-# Each ele is an array of 
-# 1. validation on fold _
-# 2. distance type 
-# 3. model
-# 4. balanced accuracy
-# 5. auc roc
-# 6. auc prc
-# 7. precision (aka true positive rate or sensitivity)
-# 8. recall
-# 9. f1
-# 10, 11, 12, 13. confusion matrix - tn, fp, fn, tp 
-
-arr_res = np.zeros((5*3*3, 13)) # num folds * num distances * num models
+# store results
+res = []
 
 # store imbalance per fold
 train_fold_labels = {}
@@ -265,30 +248,30 @@ for i in range(5):
     arr_temp = [i+1, dict_distance[distance_mode]]
 
     # kNN
-    y_pred_test = get_knn_pred(train_labels, test_labels, distance, n_neighbors_ref, knn_threshold_value)
+    y_proba_test = get_knn_score(train_labels, test_labels, distance, n_neighbors_ref)
+    y_pred_test = [int(proba > knn_threshold_value) for proba in y_proba_test]
     balanced_acc = balanced_accuracy_score(test_labels, y_pred_test)
-    auc_roc = get_roc_auc(test_labels, y_pred_test)
-    auc_pr = get_pr_auc(test_labels, y_pred_test)
+    auc_roc = get_roc_auc(test_labels, y_proba_test)
+    auc_pr = get_pr_auc(test_labels, y_proba_test)
     precision = precision_score(test_labels, y_pred_test, zero_division = 0.0)
     recall = recall_score(test_labels, y_pred_test, zero_division = 0.0)
     f1 = f1_score(test_labels, y_pred_test, zero_division = 0.0)
     tn, fp, fn, tp = confusion_matrix(test_labels, y_pred_test, labels = [0, 1]).ravel()
-    arr_res[r, :] = arr_temp + [dict_model['kNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]
-    r += 1
+    res += [arr_temp + [dict_model['kNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]]
 
     # citation kNN
-    y_counts_test = get_citation_knn_pred(train_labels, test_labels, distance, n_neighbors_ref)
-    y_pred_test = np.argmax(y_counts_test, axis = 1)
+    y_proba_test = get_citation_knn_score(train_labels, test_labels, distance, n_neighbors_ref)
+    y_pred_test = [int(proba > cknn_threshold_value) for proba in y_proba_test]
     balanced_acc = balanced_accuracy_score(test_labels, y_pred_test)
-    auc_roc = get_roc_auc(test_labels, y_pred_test)
-    auc_pr = get_pr_auc(test_labels, y_pred_test)
+    auc_roc = get_roc_auc(test_labels, y_proba_test)
+    auc_pr = get_pr_auc(test_labels, y_proba_test)
     precision = precision_score(test_labels, y_pred_test, zero_division = 0.0)
     recall = recall_score(test_labels, y_pred_test, zero_division = 0.0)
     f1 = f1_score(test_labels, y_pred_test, zero_division = 0.0)
     tn, fp, fn, tp = confusion_matrix(test_labels, y_pred_test, labels = [0, 1]).ravel()
-    arr_res[r, :] = arr_temp + [dict_model['ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]
-    r += 1
+    res += [arr_temp + [dict_model['ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]]
 
+'''
     # citation kNN with normalised
     y_counts_test = get_citation_knn_pred_normalized(train_labels, test_labels, distance, n_neighbors_ref)
     y_pred_test = np.argmax(y_counts_test, axis = 1)
@@ -299,12 +282,13 @@ for i in range(5):
     recall = recall_score(test_labels, y_pred_test, zero_division = 0.0)
     f1 = f1_score(test_labels, y_pred_test, zero_division = 0.0)
     tn, fp, fn, tp = confusion_matrix(test_labels, y_pred_test, labels = [0, 1]).ravel()
-    arr_res[r, :] = arr_temp + [dict_model['norm-ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]
-    r += 1
+    #arr_res[r, :] = arr_temp + [dict_model['norm-ckNN'], balanced_acc, auc_roc, auc_pr, precision, recall, f1, tn, fp, fn, tp]
+    #r += 1
+'''
 
 '''Get results'''
 
-df_res = pd.DataFrame(arr_res, columns=['Validation on Fold','Distance Type', 'Model',
+df_res = pd.DataFrame(res, columns=['Validation on Fold','Distance Type', 'Model',
                                           'AUC ROC', 'AUC PRC', 'Precision', 'Recall', 'F1', 'Balanced Accuracy',
                                           'tn', 'fp', 'fn', 'tp'])
 
@@ -321,5 +305,5 @@ df_res.sort_values(by=['Model', 'Distance Type', 'Validation on Fold']).to_csv("
 
 df_res.groupby(['Model', 'Distance Type']).apply(lambda x: np.mean(x.iloc[:, 3:], axis = 0)).to_csv("res_averaged.csv")
 
-with open('train_fold_labels', 'w') as f:
+with open('train_fold_labels.txt', 'w') as f:
     print(train_fold_labels, file=f)
