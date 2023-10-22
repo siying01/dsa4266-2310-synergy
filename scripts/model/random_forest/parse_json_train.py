@@ -107,7 +107,7 @@ data = {'transcript_id':id,
 
 df = pd.DataFrame(data)
 
-file2_path = (base_path / "data.info").resolve()
+file2_path = (base_path / "data/data.info").resolve()
 data_info = pd.read_csv(file2_path)
 
 #left join with data info file
