@@ -1,11 +1,11 @@
 '''This script takes in an unzipped json file and parse it into a csv file
-The input file has to be at the same level as this script'''
+The input file has to be in the folder ../data'''
 import pandas as pd
 import json
 from pathlib import Path
 
-base_path = Path(__file__).parent
-file_path = (base_path / "dataset0.json").resolve()
+base_path = Path(__file__).parent.parent
+file_path = (base_path / "data" / "dataset0.json").resolve()
 print(file_path)
 
 
@@ -47,12 +47,12 @@ data = {'transcript_id':id,
 
 df = pd.DataFrame(data)
 
-file2_path = (base_path / "data.info").resolve()
+file2_path = (base_path / "data" / "data.info").resolve()
 data_info = pd.read_csv(file2_path)
 
 #left join with data info file
 df_full = pd.merge(df, data_info, on = ['transcript_id', 'transcript_position'], how = "left")
 #print(df_full.head())
-save_path = (base_path / 'dataset0.csv').resolve()
+save_path = (base_path / "data" / "full_data.csv").resolve()
 df_full.to_csv(save_path)
 print(len(df_full['mean_current_3']))

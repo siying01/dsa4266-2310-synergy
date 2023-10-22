@@ -4,11 +4,11 @@ import pandas as pd
 from pathlib import Path
 import random
 
-base_path = Path(__file__).parent
-file_path = (base_path / "data.info").resolve()
+base_path = Path(__file__).parent.parent
+file_path = (base_path / "data" / "data.info").resolve()
 data_info = pd.read_csv(file_path)
 
-file_path2 = (base_path / "dataset0.csv").resolve()
+file_path2 = (base_path / "data" / "full_data.csv").resolve()
 df = pd.read_csv(file_path2)
 
 gene = data_info['gene_id'].unique() #Number of unique gene ids: 3852
@@ -24,4 +24,6 @@ gene_folds = pd.DataFrame(data_dict)
 
 #join with the main dataframe so that we know which samples goes to which fold during cross-validation
 full_dataset = pd.merge(df, gene_folds, on = 'gene_id', how = "left")
-full_dataset.to_csv("training_data.csv")
+
+save_path = (base_path / "data" / "data_folded_k5.csv").resolve()
+full_dataset.to_csv(save_path)
