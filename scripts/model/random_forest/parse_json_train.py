@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 base_path = Path(__file__).parent.parent.parent.parent
-file_path = (base_path / "dataset0.json").resolve()
+file_path = (base_path / "data/dataset0.json").resolve()
 
 id, pos, seq = [],[],[]
 time1_mean, time1_median, time1_std, stddev1_mean, stddev1_median, stddev1_std, current1_mean, current1_median, current1_std, current1_range = [],[],[],[],[],[],[],[],[],[]
@@ -113,5 +113,5 @@ data_info = pd.read_csv(file2_path)
 #left join with data info file
 df_full = pd.merge(df, data_info, on = ['transcript_id', 'transcript_position'], how = "left")
 
-save_path = (base_path / 'dataset0.csv').resolve()
+save_path = (base_path / 'data/dataset0.csv').resolve()
 df_full.to_csv(save_path)
