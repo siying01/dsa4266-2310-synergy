@@ -56,5 +56,8 @@ output = pd.DataFrame(output_dict)
 # save predictions
 root, extension = os.path.splitext(data)
 new_filename = os.path.basename(root) + '_predict.csv'
-save_path = (base_path / new_filename).resolve()
+result_directory = base_path / 'result'
+if not result_directory.exists():
+    result_directory.mkdir(parents=True)
+save_path = (result_directory / new_filename).resolve()
 output.to_csv(save_path, index=False)

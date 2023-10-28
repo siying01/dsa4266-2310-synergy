@@ -1,6 +1,6 @@
 '''This script takes in an unzipped json file and parse it into a csv file
 For more information, refer to the help page: python parse_json.py --help
-Example usage: python parse_json.py ../../data/dataset1.json test'''
+Example usage: python parse_json_generalised.py ../../data/dataset1.json test'''
 
 import argparse
 import os
