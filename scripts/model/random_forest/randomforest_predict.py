@@ -3,10 +3,19 @@ to output scores of m6a modification for each transcript id and position'''
 import pandas as pd
 from pathlib import Path
 import pickle
+import os
+import argparse
 
-base_path = Path(__file__).parent.parent.parent.parent
-file_path = (base_path / 'data/dataset2.csv').resolve() #Add file name
+
+# read in data
+parser = argparse.ArgumentParser(description='Predict probability scores for test data.')
+parser.add_argument('test_data', type=str, help='Path to the test data file. Can be relative path, relative to the folder containing this script.')
+args = parser.parse_args()
+data_path = args.test_data
+base_path = Path(__file__).parent
+file_path = (base_path / data_path).resolve()
 data = pd.read_csv(file_path)
+
 
 #Columns to be used for prediction
 cols_used = ['transcript_position', 'time_1_mean', 'time_1_median', 'time_1_std',
@@ -34,7 +43,7 @@ data_encoded['6-seq_encoded'] = data_encoded['6-seq'].map(six_seq_freq)
 X_final = data_encoded[cols_used]
 
 #load pickle file
-pkl_path = (base_path / 'data/randomforest.pkl').resolve()
+pkl_path = (base_path / 'randomforest.pkl').resolve()
 with open(pkl_path, 'rb') as file:
     rf_model = pickle.load(file)
 
@@ -46,5 +55,12 @@ df_dict = {'transcript_id': data['transcript_id'],
 
 df = pd.DataFrame(df_dict)
 
-save_path = (base_path / 'data/synergy_dataset2_2.csv').resolve()
-df.to_csv(save_path, index = False)
+
+# save predictions
+root, extension = os.path.splitext(data_path)
+new_filename = os.path.basename(root) + '_predict.csv'
+result_directory = base_path / 'result'
+if not result_directory.exists():
+    result_directory.mkdir(parents=True)
+save_path = (result_directory / new_filename).resolve()
+df.to_csv(save_path, index=False)

@@ -4,10 +4,36 @@ import pandas as pd
 import numpy as np
 import json
 from pathlib import Path
+import argparse
+import os
 
-base_path = Path(__file__).parent.parent.parent.parent
-file_path = (base_path / "data/dataset1.json").resolve()
 
+parser = argparse.ArgumentParser(description='Parses an unzipped json file into a csv file.')
+parser.add_argument('file_to_parse', type=str, help='Path to the file to be parsed. Can be relative path, relative to the folder containing this script.')
+parser.add_argument('use_type', type=str, choices=['train', 'test'], help='Usage type. Either train or test.')
+parser.add_argument('--file_containing_labels', type=str, help='When use_type is "train", the path to the file containing the labels is required.')
+args = parser.parse_args()
+
+# access the arguments
+file_to_parse = args.file_to_parse
+use_type = args.use_type
+file_containing_labels = args.file_containing_labels
+
+# check if the third argument is required and provided
+if use_type == 'train' and file_containing_labels is None:
+    parser.error("The --file_containing_labels is required when use_type is 'train'.")
+
+
+base_path = Path(__file__).parent
+file_path = (base_path / file_to_parse).resolve()
+print(file_path)
+
+print(f"File To Parse: {file_path}")
+print(f"To Be Used For: {use_type}")
+if file_containing_labels is not None:
+    print(f"File Containing Labels: {file_containing_labels}")
+    
+    
 id, pos, seq = [],[],[]
 time1_mean, time1_median, time1_std, stddev1_mean, stddev1_median, stddev1_std, current1_mean, current1_median, current1_std, current1_range = [],[],[],[],[],[],[],[],[],[]
 time2_mean, time2_median, time2_std, stddev2_mean, stddev2_median, stddev2_std, current2_mean, current2_median, current2_std, current2_range = [],[],[],[],[],[],[],[],[],[]
@@ -105,5 +131,9 @@ data = {'transcript_id':id,
 
 df = pd.DataFrame(data)
 
-save_path = (base_path / 'data/dataset1.csv').resolve()
+
+# to figure out the filename to save the dataframe as
+root, extension = os.path.splitext(file_to_parse)
+new_filename = root + '.csv'
+save_path = (base_path / new_filename).resolve()
 df.to_csv(save_path)

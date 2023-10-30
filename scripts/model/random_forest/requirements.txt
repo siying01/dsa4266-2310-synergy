@@ -1,7 +1,7 @@
 #execute sudo apt install python3-pip to install pip
 #run pip install -r requirements.txt
 
-scikit-learn
+scikit-learn==1.1.2
 pathlib
 pandas
 imblearn
