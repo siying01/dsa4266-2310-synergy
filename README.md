@@ -1,9 +1,9 @@
 # Prediction of m6A RNA modifications from direct RNA-Seq data
 DSA4266 Project 2: Team synergy
 
-This project aims to train a machine learning classifier to predict m6A RNA modifications from direct RNA-Seq data. 
+A Random Forest classifier was trained with Python to predict m6A RNA modifications from direct RNA-Seq data. 
 
-## For student evaluations, here are the steps to generate the predictions
+## Installation Guidelines and Instructions to Run the Method (with example)
 1. Download the `for_student_evaluation` GitHub folder onto your local laptop.
 2. Download the trained model from this link: https://drive.google.com/drive/folders/11kax7xqOQZgsfUbIwsQqtR6IN2KcFSFT?usp=drive_link
 3. Copy the downloaded `randomforest.pkl` file into the folder `for_student_evaluation/scripts/`
