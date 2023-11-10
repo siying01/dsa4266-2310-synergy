@@ -11,7 +11,7 @@ A Random Forest classifier was trained with Python to predict m6A RNA modificati
 `# eg. scp -i ~/DSA4266/AWS/dsa4266-synergy-sharedkey.pem ~/DSA4266/Project2/for_student_evaluation.zip ubuntu@122.248.227.219:~`  
 
 4. Login to your Ubuntu instance and run the following installations:  
-`sudo apt -y install python3-pip`
+`sudo apt -y install python3-pip`   
 `sudo apt install unzip`   
 `pip install pandas`    
 `pip install numpy pandas scikit-learn==1.1.2`  
