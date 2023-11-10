@@ -5,7 +5,7 @@ A Random Forest classifier was trained with Python to predict m6A RNA modificati
 
 ## Installation Guidelines and Instructions to Run the Method (with example)
 1. Download the `for_student_evaluation.zip` GitHub zipped file onto your local laptop. Unzip the file with the following command:
-`unzip path/to/downloaded/zipped/file`
+`unzip path/to/downloaded/zipped/file`  
 `# eg. unzip ~/DSA4266/Project2/for_student_evaluation.zip`
 2. Create an Ubuntu instance using Research Gateway.
 3. Copy the `for_student_evaluation` folder from local laptop into the home directory of the Ubuntu instance, by running the following on your local terminal:  
