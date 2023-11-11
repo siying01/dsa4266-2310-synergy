@@ -13,7 +13,6 @@ A Random Forest classifier was trained with Python to predict m6A RNA modificati
 4. Login to your Ubuntu instance and run the following installations:  
 `sudo apt -y install python3-pip`   
 `sudo apt install unzip`   
-`pip install pandas`    
 `pip install numpy pandas scikit-learn==1.1.2`  
 
 6. Within your Ubuntu instance, unzip the `for_student_evaluation.zip` using this command:  
